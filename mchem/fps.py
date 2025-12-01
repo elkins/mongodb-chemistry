@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 mchem.fps
 ~~~~~~~~~
@@ -9,16 +8,12 @@ Functions for generating fingerprints using RDKit.
 :license: MIT, see LICENSE file for more details.
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
-from collections import defaultdict
 import logging
+from collections import defaultdict
 
 import pymongo
 from rdkit import Chem
 from rdkit.Chem import AllChem
-
 
 log = logging.getLogger(__name__)
 
@@ -35,54 +30,52 @@ def generate(mol_collection, fp_collection, fingerprinter):
     :param fp_collection: MongoDB database collection to store fingerprints.
     :param fingerprinter: fingerprinter instance to generate fingerprint for each molecule.
     """
-    log.info('Generating %s fingerprints for %s into %s' % (fingerprinter.name, mol_collection.name, fp_collection.name))
+    log.info(
+        f"Generating {fingerprinter.name} fingerprints for {mol_collection.name} into {fp_collection.name}"
+    )
     success, skip = 0, 0
-    for molecule in mol_collection.find(timeout=False):
-        log.debug('Generating %s for %s' % (fingerprinter.name, molecule['_id']))
-        bits = fingerprinter.generate(Chem.Mol(molecule['rdmol']))
-        fp = {
-            '_id': molecule['_id'],
-            'bits': bits,
-            'count': len(bits)
-        }
+    for molecule in mol_collection.find(no_cursor_timeout=True):
+        log.debug(f'Generating {fingerprinter.name} for {molecule["_id"]}')
+        bits = fingerprinter.generate(Chem.Mol(molecule["rdmol"]))
+        fp = {"_id": molecule["_id"], "bits": bits, "count": len(bits)}
         try:
-            fp_collection.insert(fp)
-            log.debug('Inserted fingerprint for %s' % fp['_id'])
+            fp_collection.insert_one(fp)
+            log.debug(f"Inserted fingerprint for {fp['_id']}")
             success += 1
         except pymongo.errors.DuplicateKeyError:
-            log.debug('Skipped %s: Fingerprint already exists' % fp['_id'])
+            log.debug(f"Skipped {fp['_id']}: Fingerprint already exists")
             skip += 1
-    log.info('%s successes, %s skipped' % (success, skip))
-    log.info('Ensuring index on bits and counts for %s' % fp_collection.name)
-    fp_collection.ensure_index('bits')
-    fp_collection.ensure_index('count')
+    log.info(f"{success} successes, {skip} skipped")
+    log.info(f"Ensuring index on bits and counts for {fp_collection.name}")
+    fp_collection.create_index("bits")
+    fp_collection.create_index("count")
 
 
 def count(fp_collection, count_collection):
     """Build collection containing total counts of all occurrences of each fingerprint bit."""
     counts = defaultdict(int)
     count_collection.drop()
-    log.info('Counting fingerprint bits in %s' % count_collection.name)
-    for fp in fp_collection.find(timeout=False):
-        log.debug('Processing %s' % fp['_id'])
-        for bit in fp['bits']:
+    log.info(f"Counting fingerprint bits in {count_collection.name}")
+    for fp in fp_collection.find(no_cursor_timeout=True):
+        log.debug(f"Processing {fp['_id']}")
+        for bit in fp["bits"]:
             counts[bit] += 1
     for k, v in counts.items():
-        log.debug('Saving count %s: %s' % (k, v))
-        count_collection.insert({'_id': k, 'count': v})
+        log.debug(f"Saving count {k}: {v}")
+        count_collection.insert_one({"_id": k, "count": v})
 
 
-class Fingerprinter(object):
+class Fingerprinter:
     """Fingerprinter interface."""
 
     def generate(self, mol):
         """Generate this fingerprint for a molecule."""
-        raise NotImplementedError('Fingerprinter subclasses must implement a generate method')
+        raise NotImplementedError("Fingerprinter subclasses must implement a generate method")
 
     @property
     def name(self):
         """Unique name for this fingerprint."""
-        raise NotImplementedError('Fingerprinter subclasses must implement a name property')
+        raise NotImplementedError("Fingerprinter subclasses must implement a name property")
 
 
 class MorganFingerprinter(Fingerprinter):
@@ -111,15 +104,15 @@ class MorganFingerprinter(Fingerprinter):
     @property
     def name(self):
         """A unique identifier for this fingerprint with the current settings."""
-        n = 'm%s' % self.radius
+        n = f"m{self.radius}"
         if self.length:
-            n = '%sl%s' % (n, self.length)
+            n = f"{n}l{self.length}"
         return n
 
 
 def get_fingerprinter(name, radius, length=None):
     fingerprinter = {
-        'morgan': MorganFingerprinter(radius=radius, length=length)
+        "morgan": MorganFingerprinter(radius=radius, length=length)
         # Add other fingerprinters here in future
     }[name]
     return fingerprinter
