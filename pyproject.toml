@@ -93,7 +93,13 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=mchem --cov-report=term-missing"
+addopts = "-v --cov=mchem --cov-report=term-missing --strict-markers"
+markers = [
+    "rdkit: tests that require RDKit to be installed",
+    "mongodb: tests that require MongoDB connection",
+    "integration: integration tests requiring all dependencies",
+    "slow: slow-running tests",
+]
 
 [tool.mypy]
 python_version = "3.8"

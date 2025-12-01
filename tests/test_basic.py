@@ -11,9 +11,15 @@ def test_version():
 
 def test_import():
     """Test that main modules can be imported."""
-    from mchem import build, fps, similarity, cli
+    from mchem import similarity
     
-    assert build is not None
-    assert fps is not None
+    # These require RDKit, so only test if available
+    try:
+        from mchem import build, fps, cli
+        assert build is not None
+        assert fps is not None
+        assert cli is not None
+    except ImportError:
+        pytest.skip("RDKit not installed")
+    
     assert similarity is not None
-    assert cli is not None
