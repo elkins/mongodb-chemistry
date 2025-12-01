@@ -13,8 +13,16 @@ import time
 
 import click
 import numpy as np
-import psycopg2
-from psycopg2.extensions import AsIs
+
+try:
+    import psycopg2
+    from psycopg2.extensions import AsIs
+
+    PSYCOPG2_AVAILABLE = True
+except ImportError:
+    PSYCOPG2_AVAILABLE = False
+    psycopg2 = None  # type: ignore
+    AsIs = None  # type: ignore
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +55,12 @@ log = logging.getLogger(__name__)
 @click.pass_context
 def cli(ctx, db, user, password, verbose):
     """PostgreSQL command line interface."""
+    if not PSYCOPG2_AVAILABLE:
+        click.echo(
+            "Error: psycopg2 is not installed. Install it with: pip install mongodb-chemistry[postgres]",
+            err=True,
+        )
+        ctx.exit(1)
     click.echo(f"Connecting {user}@{db}")
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO, format="%(levelname)s: %(message)s"

@@ -39,10 +39,12 @@ dependencies = [
     "numpy>=1.21",
     "scipy>=1.7",
     "matplotlib>=3.5",
-    "psycopg2-binary>=2.9",
 ]
 
 [project.optional-dependencies]
+postgres = [
+    "psycopg2-binary>=2.9",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
