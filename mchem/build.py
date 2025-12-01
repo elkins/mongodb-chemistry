@@ -74,8 +74,9 @@ def load_sdf(sdf, collection, idfield):
         if idfield:
             mol["_id"] = rdmol.GetProp(idfield)
         try:
-            collection.insert_one(mol)
-            log.debug(f"Inserted {mol['_id']}")
+            result = collection.insert_one(mol)
+            mol_id = mol.get("_id", result.inserted_id)
+            log.debug(f"Inserted {mol_id}")
             success += 1
         except pymongo.errors.DuplicateKeyError:
             log.debug(f"Skipped {mol['_id']}: Already exists")
