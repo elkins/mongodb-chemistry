@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 mchem.plot
 ~~~~~~~~~~
@@ -9,9 +8,6 @@ Plot profiling results using matplotlib.
 :license: MIT, see LICENSE file for more details.
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
 import logging
 
 import matplotlib.pyplot as plt

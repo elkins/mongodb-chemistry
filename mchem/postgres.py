@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 mchem.postgres
 ~~~~~~~~~~~~~~
@@ -9,9 +8,6 @@ Functions to build and benchmark PostgreSQL database for comparison.
 :license: MIT, see LICENSE file for more details.
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
 import logging
 import time
 
@@ -38,7 +34,7 @@ log = logging.getLogger(__name__)
 @click.pass_context
 def cli(ctx, db, user, password, verbose):
     """PostgreSQL command line interface."""
-    click.echo('Connecting %s@%s' % (user, db))
+    click.echo(f'Connecting {user}@{db}')
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, format='%(levelname)s: %(message)s')
     ctx.obj = psycopg2.connect(database=db, user=user, password=password)
 

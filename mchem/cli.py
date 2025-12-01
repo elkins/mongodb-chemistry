@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 mchem.cli
 ~~~~~~~~~
@@ -33,8 +32,8 @@ MONGODB_COLL = 'mols'
 @click.pass_context
 def cli(ctx, uri, db, verbose):
     """mongodb-chemistry command line interface."""
-    click.echo('mchem v%s' % __version__)
-    click.echo('Connecting to %s/%s' % (uri, db))
+    click.echo(f'mchem v{__version__}')
+    click.echo(f'Connecting to {uri}/{db}')
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO, format='%(levelname)s: %(message)s')
     ctx.obj = pymongo.MongoClient(uri)[db]
 
@@ -47,8 +46,8 @@ def cli(ctx, uri, db, verbose):
 def load(db, sdf, collection, idfield):
     """Load molecules from SDF file(s) into a MongoDB collection."""
     click.echo('mchem.load')
-    if db[collection].count() > 0:
-        click.confirm('Add to existing %s collection?' % collection, abort=True)
+    if db[collection].count_documents({}) > 0:
+        click.confirm(f'Add to existing {collection} collection?', abort=True)
     build.load_sdfs(sdf, db[collection], idfield)
 
 
@@ -58,9 +57,9 @@ def load(db, sdf, collection, idfield):
 def drop(db, collection):
     """Drop a MongoDB collection."""
     click.echo('mchem.drop')
-    if click.confirm('Are you sure you want to drop the collection %s?' % collection.name):
+    if click.confirm(f'Are you sure you want to drop the collection {collection}?'):
         db.drop_collection(collection)
-        click.echo('Dropped the collection %s!' % collection.name)
+        click.echo(f'Dropped the collection {collection}!')
 
 
 
@@ -76,9 +75,9 @@ def addfp(db, collection, fp, radius, length):
     """Generate a fingerprint for every molecule in a MongoDB collection."""
     click.echo('mchem.addfp')
     fingerprinter = fps.get_fingerprinter(fp, radius, length)
-    fp_collection = db['%s.%s' % (collection, fingerprinter.name)]
-    if fp_collection.count() > 0:
-        click.confirm('Add %s fingerprints to existing %s collection?' % (collection, fp_collection.name), abort=True)
+    fp_collection = db[f'{collection}.{fingerprinter.name}']
+    if fp_collection.count_documents({}) > 0:
+        click.confirm(f'Add {collection} fingerprints to existing {fp_collection.name} collection?', abort=True)
     fps.generate(db[collection], fp_collection, fingerprinter)
 
 
@@ -92,8 +91,8 @@ def countfp(db, collection, fp, radius, length):
     """Pre-calculate count of each fingerprint bit for a specific fingerprint in a specific molecule collection."""
     click.echo('mchem.countfp')
     fingerprinter = fps.get_fingerprinter(fp, radius, length)
-    fp_collection = db['%s.%s' % (collection, fingerprinter.name)]
-    count_collection = db['%s.counts' % fp_collection.name]
+    fp_collection = db[f'{collection}.{fingerprinter.name}']
+    count_collection = db[f'{fp_collection.name}.counts']
     fps.count(fp_collection, count_collection)
 
 
@@ -141,9 +140,9 @@ def similar(db, smiles, collection, threshold, fp, radius, length):
     """Perform a similarity search."""
     click.echo('mchem.similar')
     fingerprinter = fps.get_fingerprinter(fp, radius, length)
-    fp_collection = db['%s.%s' % (collection, fingerprinter.name)]
-    count_collection = db['%s.counts' % fp_collection.name]
-    mol = Chem.MolFromSmiles(smiles.encode())
+    fp_collection = db[f'{collection}.{fingerprinter.name}']
+    count_collection = db[f'{fp_collection.name}.counts']
+    mol = Chem.MolFromSmiles(smiles)
     results = similarity.similarity_search(mol, fingerprinter, fp_collection, threshold, count_collection)
     for result in results:
         click.echo(result['_id'])
@@ -161,11 +160,11 @@ def samplesim(db, sample, collection, threshold, fp, radius, length):
     """Perform a similarity search on every molecule in sample and print results."""
     click.echo('mchem.similar')
     fingerprinter = fps.get_fingerprinter(fp, radius, length)
-    fp_collection = db['%s.%s' % (collection, fingerprinter.name)]
-    count_collection = db['%s.counts' % fp_collection.name]
+    fp_collection = db[f'{collection}.{fingerprinter.name}']
+    count_collection = db[f'{fp_collection.name}.counts']
     mol_ids = sample.read().strip().split('\n')
     for i, mol_id in enumerate(mol_ids):
-        click.echo('Query: %s (%s of %s)' % (mol_id, i+1, len(mol_ids)))
+        click.echo(f'Query: {mol_id} ({i+1} of {len(mol_ids)})')
         qmol = Chem.Mol(db[collection].find_one({'_id': mol_id})['rdmol'])
         result_mols = similarity.similarity_search(qmol, fingerprinter, fp_collection, threshold, count_collection)
         click.echo([r['_id'] for r in result_mols])
@@ -181,13 +180,13 @@ def samplesim(db, sample, collection, threshold, fp, radius, length):
 def sample(db, collection, size, seed, output):
     """Choose a random sample of molecules from a collection."""
     click.echo('mchem.sample')
-    # TODO: I think this will break down for larger collections.
-    # Instead assign random number field to molecules when creating?
+    # Note: For very large collections (>10M documents), consider using aggregation
+    # pipeline with $sample stage instead of loading all IDs into memory
     ids = [m['_id'] for m in db[collection].find().sort('_id')]
     random.seed(seed)
     rands = random.sample(ids, size)
     for rand in rands:
-        output.write('%s\n' % rand)
+        output.write(f'{rand}\n')
 
 
 def load_sample_mols(db, collection, f):
@@ -208,9 +207,9 @@ def analyse(db, test, collection, sample, fp, radius, length):
     click.echo('mchem.test')
     mols = load_sample_mols(db, collection, sample)
     fingerprinter = fps.get_fingerprinter(fp, radius, length)
-    fp_collection = db['%s.%s' % (collection, fingerprinter.name)]
-    count_collection = db['%s.counts' % fp_collection.name]
-    result_collection = db['%s.test' % collection]
+    fp_collection = db[f'{collection}.{fingerprinter.name}']
+    count_collection = db[f'{fp_collection.name}.counts']
+    result_collection = db[f'{collection}.test']
     thresholds = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
 
     for threshold in thresholds:
@@ -237,9 +236,9 @@ def benchmark(db, collection, sample, fp, radius, length):
     click.echo('mchem.test')
     mols = load_sample_mols(db, collection, sample)
     fingerprinter = fps.get_fingerprinter(fp, radius, length)
-    fp_collection = db['%s.%s' % (collection, fingerprinter.name)]
-    count_collection = db['%s.counts' % fp_collection.name]
-    result_collection = db['%s.profile' % collection]
+    fp_collection = db[f'{collection}.{fingerprinter.name}']
+    count_collection = db[f'{fp_collection.name}.counts']
+    result_collection = db[f'{collection}.profile']
     thresholds = [1.0, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5]
     for threshold in thresholds:
         profile.profile_similarity(mols, fingerprinter, fp_collection, result_collection, threshold, count_collection)
@@ -252,7 +251,7 @@ def benchmark(db, collection, sample, fp, radius, length):
 def results(db, test, collection):
     """Plot test results."""
     click.echo('mchem.results')
-    result_collection = db['%s.test' % collection]
+    result_collection = db[f'{collection}.test']
     if test == 'screening':
         plot.plot_screening(result_collection)
     elif test == 'folding':

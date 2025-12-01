@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 mchem.screening
 ~~~~~~~~~~~~~~~
@@ -9,9 +8,6 @@ Functions for analysing screening methods for chemical searches in MongoDB.
 :license: MIT, see LICENSE file for more details.
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
 import logging
 from math import ceil
 
@@ -41,19 +37,19 @@ def screen(mol, fingerprinter, fp_collection, threshold=0.8, count_collection=No
         query['bits'] = {'$in': reqbits}
     if counts:
         query['count'] = {'$gte': qmin, '$lte': qmax}
-    remaining = fp_collection.find(query).count()
+    remaining = fp_collection.count_documents(query)
     return remaining
 
 
 def test_screening(mols, fingerprinter, fp_collection, result_collection, threshold=0.8, count_collection=None, reqbits=True, counts=True):
     """Test how different screening methods can constrain the molecule collection."""
-    log.info('Testing screening: fp: %s Threshold: %s' % (fingerprinter.name, threshold))
-    log.info('Methods: counts: %s reqbits: %s rarest: %s' % (counts, reqbits, count_collection is not None))
+    log.info(f'Testing screening: fp: {fingerprinter.name} Threshold: {threshold}')
+    log.info(f'Methods: counts: {counts} reqbits: {reqbits} rarest: {count_collection is not None}')
     result = {
         'fp': fingerprinter.name,
         'threshold': threshold,
         'remaining': [],
-        'total': fp_collection.count(),
+        'total': fp_collection.count_documents({}),
         'reqbits': reqbits,
         'counts': counts,
         'rarest': count_collection is not None

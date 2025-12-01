@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 mchem.similarity
 ~~~~~~~~~~~~~~~~
@@ -9,9 +8,6 @@ Functions for performing similarity search queries.
 :license: MIT, see LICENSE file for more details.
 """
 
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
 import logging
 from math import ceil
 
@@ -21,7 +17,7 @@ log = logging.getLogger(__name__)
 
 def similarity_client(mol, fingerprinter, fp_collection,  threshold=0.8, count_collection=None):
     """Perform a similarity search on the client, with initial screening to improve performance."""
-    log.info('Similarity search with %s and threshold %s' % (fp_collection.name, threshold))
+    log.info(f'Similarity search with {fp_collection.name} and threshold {threshold}')
     qfp = fingerprinter.generate(mol)
     qn = len(qfp)                           # Number of bits in query fingerprint
     qmin = int(ceil(qn * threshold))        # Minimum number of bits in results fingerprints
@@ -82,7 +78,7 @@ def similarity_search_fp(qfp, fp_collection, threshold=0.8, count_collection=Non
         {'$match': {'tanimoto': {'$gte': threshold}}}
     ]
     response = fp_collection.aggregate(aggregate)
-    return response['result']
+    return list(response)
 
 
 def similarity_suvee(mol, fingerprinter, fp_collection, threshold=0.8):
@@ -110,4 +106,4 @@ def similarity_suvee(mol, fingerprinter, fp_collection, threshold=0.8):
         {'$match': {'tanimoto': {'$gte': threshold}}}
     ]
     response = fp_collection.aggregate(aggregate)
-    return response['result']
+    return list(response)
