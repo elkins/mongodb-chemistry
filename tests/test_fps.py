@@ -1,7 +1,8 @@
 """Unit tests for mchem.fps module."""
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 
 # Only import if RDKit is available
 pytest.importorskip("rdkit")
@@ -33,27 +34,27 @@ class TestMorganFingerprinter:
     def test_name_unfolded(self):
         """Test fingerprinter name for unfolded fingerprint."""
         fp = fps.MorganFingerprinter(radius=2)
-        assert fp.name == 'm2'
+        assert fp.name == "m2"
 
     def test_name_folded(self):
         """Test fingerprinter name for folded fingerprint."""
         fp = fps.MorganFingerprinter(radius=2, length=512)
-        assert fp.name == 'm2l512'
+        assert fp.name == "m2l512"
 
     def test_name_different_radius(self):
         """Test fingerprinter name with different radius."""
         fp = fps.MorganFingerprinter(radius=3, length=2048)
-        assert fp.name == 'm3l2048'
+        assert fp.name == "m3l2048"
 
     @pytest.mark.rdkit
     def test_generate_unfolded(self):
         """Test fingerprint generation without folding."""
         from rdkit import Chem
-        
+
         fp = fps.MorganFingerprinter(radius=2)
-        mol = Chem.MolFromSmiles('CC(=O)O')  # Acetic acid
+        mol = Chem.MolFromSmiles("CC(=O)O")  # Acetic acid
         result = fp.generate(mol)
-        
+
         assert isinstance(result, list)
         assert len(result) > 0
         assert all(isinstance(bit, int) for bit in result)
@@ -63,11 +64,11 @@ class TestMorganFingerprinter:
     def test_generate_folded(self):
         """Test fingerprint generation with folding."""
         from rdkit import Chem
-        
+
         fp = fps.MorganFingerprinter(radius=2, length=1024)
-        mol = Chem.MolFromSmiles('CC(=O)O')
+        mol = Chem.MolFromSmiles("CC(=O)O")
         result = fp.generate(mol)
-        
+
         assert isinstance(result, list)
         assert len(result) > 0
         assert all(0 <= bit < 1024 for bit in result)
@@ -95,13 +96,13 @@ class TestGetFingerprinter:
 
     def test_get_morgan_fingerprinter(self):
         """Test getting Morgan fingerprinter."""
-        fp = fps.get_fingerprinter('morgan', radius=2)
+        fp = fps.get_fingerprinter("morgan", radius=2)
         assert isinstance(fp, fps.MorganFingerprinter)
         assert fp.radius == 2
 
     def test_get_morgan_with_length(self):
         """Test getting Morgan fingerprinter with length."""
-        fp = fps.get_fingerprinter('morgan', radius=3, length=2048)
+        fp = fps.get_fingerprinter("morgan", radius=3, length=2048)
         assert isinstance(fp, fps.MorganFingerprinter)
         assert fp.radius == 3
         assert fp.length == 2048
@@ -109,7 +110,7 @@ class TestGetFingerprinter:
     def test_get_invalid_fingerprinter(self):
         """Test that invalid fingerprinter name raises KeyError."""
         with pytest.raises(KeyError):
-            fps.get_fingerprinter('invalid', radius=2)
+            fps.get_fingerprinter("invalid", radius=2)
 
 
 @pytest.mark.mongodb
@@ -120,29 +121,27 @@ class TestGenerate:
         """Test that generate creates fingerprints in collection."""
         # Mock collections
         mock_mol_collection = Mock()
-        mock_mol_collection.name = 'test_mols'
-        mock_mol_collection.find.return_value = [
-            {'_id': 'mol1', 'rdmol': b'mock_rdmol_data'}
-        ]
-        
+        mock_mol_collection.name = "test_mols"
+        mock_mol_collection.find.return_value = [{"_id": "mol1", "rdmol": b"mock_rdmol_data"}]
+
         mock_fp_collection = Mock()
-        mock_fp_collection.name = 'test_fps'
-        
+        mock_fp_collection.name = "test_fps"
+
         # Mock fingerprinter
         mock_fingerprinter = Mock()
-        mock_fingerprinter.name = 'm2'
+        mock_fingerprinter.name = "m2"
         mock_fingerprinter.generate.return_value = [1, 5, 10, 25]
-        
+
         # Mock Chem.Mol
-        with patch('mchem.fps.Chem.Mol'):
+        with patch("mchem.fps.Chem.Mol"):
             fps.generate(mock_mol_collection, mock_fp_collection, mock_fingerprinter)
-        
+
         # Verify insert_one was called
         assert mock_fp_collection.insert_one.called
         call_args = mock_fp_collection.insert_one.call_args[0][0]
-        assert call_args['_id'] == 'mol1'
-        assert call_args['bits'] == [1, 5, 10, 25]
-        assert call_args['count'] == 4
+        assert call_args["_id"] == "mol1"
+        assert call_args["bits"] == [1, 5, 10, 25]
+        assert call_args["count"] == 4
 
 
 @pytest.mark.mongodb
@@ -154,27 +153,27 @@ class TestCount:
         # Mock fingerprint collection
         mock_fp_collection = Mock()
         mock_fp_collection.find.return_value = [
-            {'_id': 'mol1', 'bits': [1, 2, 3]},
-            {'_id': 'mol2', 'bits': [2, 3, 4]},
-            {'_id': 'mol3', 'bits': [1, 3, 5]}
+            {"_id": "mol1", "bits": [1, 2, 3]},
+            {"_id": "mol2", "bits": [2, 3, 4]},
+            {"_id": "mol3", "bits": [1, 3, 5]},
         ]
-        
+
         # Mock count collection
         mock_count_collection = Mock()
-        mock_count_collection.name = 'test_counts'
-        
+        mock_count_collection.name = "test_counts"
+
         fps.count(mock_fp_collection, mock_count_collection)
-        
+
         # Verify drop was called
         assert mock_count_collection.drop.called
-        
+
         # Verify insert_one was called for each bit
         assert mock_count_collection.insert_one.call_count == 5
-        
+
         # Check that counts are correct
         inserted_docs = [call[0][0] for call in mock_count_collection.insert_one.call_args_list]
-        bit_counts = {doc['_id']: doc['count'] for doc in inserted_docs}
-        
+        bit_counts = {doc["_id"]: doc["count"] for doc in inserted_docs}
+
         assert bit_counts[1] == 2  # Bit 1 appears in mol1 and mol3
         assert bit_counts[2] == 2  # Bit 2 appears in mol1 and mol2
         assert bit_counts[3] == 3  # Bit 3 appears in all three
@@ -189,25 +188,25 @@ class TestIntegrationWithRDKit:
     def test_aspirin_fingerprint(self):
         """Test fingerprint generation for aspirin."""
         from rdkit import Chem
-        
+
         fp = fps.MorganFingerprinter(radius=2)
-        aspirin = Chem.MolFromSmiles('CC(=O)Oc1ccccc1C(=O)O')
+        aspirin = Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")
         result = fp.generate(aspirin)
-        
+
         assert len(result) > 10  # Aspirin should have many bits set
         assert all(isinstance(bit, int) for bit in result)
 
     def test_different_molecules_different_fingerprints(self):
         """Test that different molecules produce different fingerprints."""
         from rdkit import Chem
-        
+
         fp = fps.MorganFingerprinter(radius=2)
-        aspirin = Chem.MolFromSmiles('CC(=O)Oc1ccccc1C(=O)O')
-        caffeine = Chem.MolFromSmiles('CN1C=NC2=C1C(=O)N(C(=O)N2C)C')
-        
+        aspirin = Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")
+        caffeine = Chem.MolFromSmiles("CN1C=NC2=C1C(=O)N(C(=O)N2C)C")
+
         fp_aspirin = set(fp.generate(aspirin))
         fp_caffeine = set(fp.generate(caffeine))
-        
+
         # Fingerprints should be different
         assert fp_aspirin != fp_caffeine
         # But may have some bits in common
@@ -216,11 +215,11 @@ class TestIntegrationWithRDKit:
     def test_same_molecule_same_fingerprint(self):
         """Test that the same molecule always produces the same fingerprint."""
         from rdkit import Chem
-        
+
         fp = fps.MorganFingerprinter(radius=2)
-        mol = Chem.MolFromSmiles('CC(=O)O')
-        
+        mol = Chem.MolFromSmiles("CC(=O)O")
+
         fp1 = fp.generate(mol)
         fp2 = fp.generate(mol)
-        
+
         assert fp1 == fp2

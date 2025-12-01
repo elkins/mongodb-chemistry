@@ -10,14 +10,12 @@ mongodb-chemistry
 
 import logging
 
-
-__title__ = 'mongodb-chemistry'
-__version__ = '0.1.0'
-__author__ = 'Matt Swain'
-__email__ = 'm.swain@me.com'
-__license__ = 'MIT'
-__copyright__ = 'Copyright 2014 Matt Swain'
-
+__title__ = "mongodb-chemistry"
+__version__ = "0.1.0"
+__author__ = "Matt Swain"
+__email__ = "m.swain@me.com"
+__license__ = "MIT"
+__copyright__ = "Copyright 2014 Matt Swain"
 
 
 log = logging.getLogger(__name__)

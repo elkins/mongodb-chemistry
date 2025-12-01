@@ -14,16 +14,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate
 
-
 log = logging.getLogger(__name__)
 
 
 def plot_screen(results, label, style):
-    thresholds = np.array([0] + [r['threshold'] for r in results])
-    discard = np.array([0] + [1 - r['mean_remaining'] / r['total'] for r in results])
+    thresholds = np.array([0] + [r["threshold"] for r in results])
+    discard = np.array([0] + [1 - r["mean_remaining"] / r["total"] for r in results])
     log.info(thresholds)
     log.info(discard)
-    #plt.plot(thresholds, discard, 'ow', markeredgewidth=1)
+    # plt.plot(thresholds, discard, 'ow', markeredgewidth=1)
     xfit = np.linspace(0, 1, 1000)
     spl = interpolate.UnivariateSpline(thresholds, discard, s=0)
     plt.plot(xfit, spl(xfit), style, linewidth=1.5, label=label)
@@ -31,63 +30,105 @@ def plot_screen(results, label, style):
 
 def plot_screening(result_collection):
     """Plot screening ability of different screening methods."""
-    #idealresults = list(result_collection.find({'ideal': True}).sort('threshold'))
-    allresults = list(result_collection.find({'fp': 'm2', 'counts': True, 'reqbits': True, 'rarest': True}).sort('threshold'))
-    countresults = list(result_collection.find({'counts': True, 'reqbits': False, 'rarest': False}).sort('threshold'))
-    reqresults = list(result_collection.find({'counts': False, 'reqbits': True, 'rarest': False}).sort('threshold'))
-    rareresults = list(result_collection.find({'counts': False, 'reqbits': True, 'rarest': True}).sort('threshold'))
-    #plot_screen(idealresults, 'Ideal', 'k--')
-    plot_screen(allresults, 'Combined', 'k')
-    plot_screen(countresults, 'Counts', 'g')
-    plot_screen(reqresults, 'Required', 'b')
-    plot_screen(rareresults, 'Rarest', 'r')
-    plt.ylabel('Discard fraction')
-    plt.xlabel('Similarity threshold')
+    # idealresults = list(result_collection.find({'ideal': True}).sort('threshold'))
+    allresults = list(
+        result_collection.find({"fp": "m2", "counts": True, "reqbits": True, "rarest": True}).sort(
+            "threshold"
+        )
+    )
+    countresults = list(
+        result_collection.find({"counts": True, "reqbits": False, "rarest": False}).sort(
+            "threshold"
+        )
+    )
+    reqresults = list(
+        result_collection.find({"counts": False, "reqbits": True, "rarest": False}).sort(
+            "threshold"
+        )
+    )
+    rareresults = list(
+        result_collection.find({"counts": False, "reqbits": True, "rarest": True}).sort("threshold")
+    )
+    # plot_screen(idealresults, 'Ideal', 'k--')
+    plot_screen(allresults, "Combined", "k")
+    plot_screen(countresults, "Counts", "g")
+    plot_screen(reqresults, "Required", "b")
+    plot_screen(rareresults, "Rarest", "r")
+    plt.ylabel("Discard fraction")
+    plt.xlabel("Similarity threshold")
     plt.axis([0, 1, 0, 1])
     plt.grid(True)
-    #plt.show()
-    #fig = plt.gcf()
-    #fig.set_size_inches(10, 6)
-    plt.legend(loc='upper left', numpoints=1)
-    plt.savefig('img/screening.svg', dpi=100)  # facecolor='#f2f2f2'
+    # plt.show()
+    # fig = plt.gcf()
+    # fig.set_size_inches(10, 6)
+    plt.legend(loc="upper left", numpoints=1)
+    plt.savefig("img/screening.svg", dpi=100)  # facecolor='#f2f2f2'
 
 
 def plot_folding(result_collection):
-    unfresults = list(result_collection.find({'fp': 'm2', 'counts': True, 'reqbits': True, 'rarest': True}).sort('threshold'))
-    plot_screen(unfresults, 'Unfolded', 'k')
-    f2048results = list(result_collection.find({'fp': 'm2l2048', 'counts': True, 'reqbits': True, 'rarest': True}).sort('threshold'))
-    plot_screen(f2048results, '2048 bits', 'r')
-    f1024results = list(result_collection.find({'fp': 'm2l1024', 'counts': True, 'reqbits': True, 'rarest': True}).sort('threshold'))
-    plot_screen(f1024results, '1024 bits', 'g')
-    f512results = list(result_collection.find({'fp': 'm2l512', 'counts': True, 'reqbits': True, 'rarest': True}).sort('threshold'))
-    plot_screen(f512results, '512 bits', 'b')
-    plt.ylabel('Discard fraction')
-    plt.xlabel('Similarity threshold')
+    unfresults = list(
+        result_collection.find({"fp": "m2", "counts": True, "reqbits": True, "rarest": True}).sort(
+            "threshold"
+        )
+    )
+    plot_screen(unfresults, "Unfolded", "k")
+    f2048results = list(
+        result_collection.find(
+            {"fp": "m2l2048", "counts": True, "reqbits": True, "rarest": True}
+        ).sort("threshold")
+    )
+    plot_screen(f2048results, "2048 bits", "r")
+    f1024results = list(
+        result_collection.find(
+            {"fp": "m2l1024", "counts": True, "reqbits": True, "rarest": True}
+        ).sort("threshold")
+    )
+    plot_screen(f1024results, "1024 bits", "g")
+    f512results = list(
+        result_collection.find(
+            {"fp": "m2l512", "counts": True, "reqbits": True, "rarest": True}
+        ).sort("threshold")
+    )
+    plot_screen(f512results, "512 bits", "b")
+    plt.ylabel("Discard fraction")
+    plt.xlabel("Similarity threshold")
     plt.axis([0, 1, 0, 1])
     plt.grid(True)
-    #plt.show()
-    #fig = plt.gcf()
-    #fig.set_size_inches(10, 6)
-    plt.legend(loc='upper left', numpoints=1)
-    plt.savefig('img/folding.svg', dpi=100)  # facecolor='#f2f2f2'
+    # plt.show()
+    # fig = plt.gcf()
+    # fig.set_size_inches(10, 6)
+    plt.legend(loc="upper left", numpoints=1)
+    plt.savefig("img/folding.svg", dpi=100)  # facecolor='#f2f2f2'
 
 
 def plot_radius(result_collection):
-    r2results = list(result_collection.find({'fp': 'm2', 'counts': True, 'reqbits': True, 'rarest': True}).sort('threshold'))
-    plot_screen(r2results, 'Morgan radius 2', 'k')
-    r3results = list(result_collection.find({'fp': 'm3', 'counts': True, 'reqbits': True, 'rarest': True}).sort('threshold'))
-    plot_screen(r3results, 'Morgan radius 3', 'r')
-    r4results = list(result_collection.find({'fp': 'm4', 'counts': True, 'reqbits': True, 'rarest': True}).sort('threshold'))
-    plot_screen(r4results, 'Morgan radius 4', 'b')
-    plt.ylabel('Discard fraction')
-    plt.xlabel('Similarity threshold')
+    r2results = list(
+        result_collection.find({"fp": "m2", "counts": True, "reqbits": True, "rarest": True}).sort(
+            "threshold"
+        )
+    )
+    plot_screen(r2results, "Morgan radius 2", "k")
+    r3results = list(
+        result_collection.find({"fp": "m3", "counts": True, "reqbits": True, "rarest": True}).sort(
+            "threshold"
+        )
+    )
+    plot_screen(r3results, "Morgan radius 3", "r")
+    r4results = list(
+        result_collection.find({"fp": "m4", "counts": True, "reqbits": True, "rarest": True}).sort(
+            "threshold"
+        )
+    )
+    plot_screen(r4results, "Morgan radius 4", "b")
+    plt.ylabel("Discard fraction")
+    plt.xlabel("Similarity threshold")
     plt.axis([0, 1, 0, 1])
     plt.grid(True)
-    #plt.show()
-    #fig = plt.gcf()
-    #fig.set_size_inches(10, 6)
-    plt.legend(loc='lower right', numpoints=1)
-    plt.savefig('img/radius.svg', dpi=100)  # facecolor='#f2f2f2'
+    # plt.show()
+    # fig = plt.gcf()
+    # fig.set_size_inches(10, 6)
+    plt.legend(loc="lower right", numpoints=1)
+    plt.savefig("img/radius.svg", dpi=100)  # facecolor='#f2f2f2'
 
 
 # def plot_radius_hist(db):
